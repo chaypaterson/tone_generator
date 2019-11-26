@@ -9,9 +9,17 @@
  * depends on libgsl-dev (debian)
  */
 
-double A440 = 2*M_PI*440; // base tone: A 440Hz
-double Cs5  = 2*M_PI*554.365;
-double E5   = 2*M_PI*659.255;
+// define some constants
+
+const double A440 = 2*M_PI*440; // base tone: A 440Hz
+const double Cs5  = 2*M_PI*554.365;
+const double E5   = 2*M_PI*659.255;
+const unsigned int DefaultSampleRate = 44100;
+
+// define a header for a wav file
+
+typedef struct FileHeader {
+};
 
 // define some interesting functions
 
@@ -56,16 +64,27 @@ double legendre(double n, double theta) {
     return gsl_sf_legendre_Pl(n,theta);
 }
 
-// TODO mathieu?
+// TODO mathieu
+double mathieu() {
+    return 0;
+}
 
 // define signal
 double signal(double t) {
     double theta = A440 * t;
-    // TODO pulse width modulation: tune dwell in one region
-    return JSnNorm(0.9999999,theta);
+    // TODO pulse width modulation: tune dwell in one region?
+    // TODO 
+    return JSnNorm(0.95,theta);
 }
 
 int main() {
+    // TODO the header: WAV magic numbers?
+
+    // Sampling rate:
+    unsigned int SampleRate = 16000; // this needs to be included in the
+    // header
+
+    // bits to output
     int16_t v;  // v is a 16-bit integer
     char* p = (char*) (&v); // this is a character that points to the value of
                             // v
@@ -74,14 +93,32 @@ int main() {
     double tmax = start+length;
     double t = start; // time variable
 
+    // On-the-fly bitrate conversion:
+    // Downsampling should use a low-pass filter
+    double CutOffFrequency = 0.5 * SampleRate; // Nyquist frequency
+    double alpha = 1-CutOffFrequency/DefaultSampleRate; //remanence for low-pass filter
+
     while (t<tmax) {
         v = (int16_t) ( signal(t) * (2<<12) );
-        putchar(p[0]);
-        putchar(p[1]);
-        putchar(p[0]);    // why both? if these are commented
-        putchar(p[1]);    // out, the tone is twice as high?
+        // 2^12 = 4096, the range of int16_t
 
-        t+=1./44100;
+        if ((SampleRate < DefaultSampleRate)&&(t>0)) {
+            // downsample the signal
+            // we know that this signal is signal(t), and the last time was
+            // t-dt: so we can say that
+            double dt = 1./SampleRate;
+            int16_t lastValue = (int16_t) ( (alpha*signal(t))*(2<<12) +
+            ((1-alpha)*signal(t-dt))*(2<<12));
+        }
+
+        // write sound:
+        putchar(p[0]);  // left channel
+        putchar(p[1]);
+        putchar(p[0]);  // right channel
+        putchar(p[1]);
+
+        t+=1./SampleRate; // default sampling rate: 44.1 kHz
+                          // but we could be sampling at something else
     }
 
     return 0;
