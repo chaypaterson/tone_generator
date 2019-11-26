@@ -3,6 +3,10 @@
 #include <math.h>
 #include <gsl/gsl_sf.h>
 
+#ifndef M_PI
+    #define M_PI 3.14159265358979323846
+#endif
+
 /* audio.c
  * a simple PCM signal generator
  * compiles with: gcc audio.c -lm -lgsl
@@ -18,8 +22,9 @@ const unsigned int DefaultSampleRate = 44100;
 
 // define a header for a wav file
 
-typedef struct FileHeader {
-};
+/*typedef struct FileHeader {
+*};
+*/
 
 // define some interesting functions
 
@@ -38,7 +43,9 @@ double sinlet(double theta, double decay) {
 }
 
 double besselj(int n, double theta) {
-    return jn(n, theta);
+    // the function jn lacks a prototype in the header so the ISO 17 standard
+    // complains: however, gsl_sf_bessel_Jn is fine.
+    return gsl_sf_bessel_Jn(n, theta);
 }
 
 double JSnNorm(double m, double theta) {
@@ -109,6 +116,7 @@ int main() {
             double dt = 1./SampleRate;
             int16_t lastValue = (int16_t) ( (alpha*signal(t))*(2<<12) +
             ((1-alpha)*signal(t-dt))*(2<<12));
+            v = lastValue;
         }
 
         // write sound:

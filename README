@@ -1,7 +1,7 @@
 tone_generator
 --------------
 
-This is a tone generator. It is a pure ANSI C program that takes mathematical functions
+This is a tone generator. It is a pure ISO C 2017 program that takes mathematical functions
 and outputs waveforms from them.
 
 The original purpose was to learn what Bessel functions "sounded like": it
