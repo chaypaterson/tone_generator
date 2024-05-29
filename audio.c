@@ -92,6 +92,7 @@ void WavHeader(double length, int SampleRate) {
     printf("RIFF");
     putint(filesize(length, SampleRate) - 8, 4);
     printf("WAVE");
+
     // Format chunk:
     printf("fmt ");
     putint(16, 4); // chunk size
@@ -101,6 +102,7 @@ void WavHeader(double length, int SampleRate) {
     putint(SampleRate * BytePerBloc, 4); // BytePerSec
     putint(BytePerBloc, 2); // BytePerBloc
     putint(16, 2); // BitsPerSample
+
     // Data chunk:
     printf("data");
     putint((int)(SampleRate * length) * BytePerBloc, 4);
@@ -120,7 +122,7 @@ int main() {
 
     int16_t v;  // v is a 16-bit integer
 
-    // TODO the header: WAV magic numbers?
+    // write the header: WAV magic numbers
     WavHeader(length, SampleRate);
 
     for (double t = 0; t < length; t += dt) {
