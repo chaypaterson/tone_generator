@@ -80,53 +80,70 @@ double mathieu() {
 double signal(double t) {
     double theta = A440 * t;
     // TODO pulse width modulation: tune dwell in one region?
-    // TODO 
     return JSnNorm(0.95,theta);
 }
 
-int main() {
-    // TODO the header: WAV magic numbers?
+int putint(int var, char bytes) {
+    // writes "bytes" bytes from the start of an integer
+    char* p = (char*) &var;
+    for (char n = 0; n < bytes; ++n)
+        putchar(*p++);
 
+    return var;
+}
+
+int filesize(double length, int SampleRate) {
+    // return the overall filesize of a WAV file in bytes
+    int header = 44;
+    int samples = length * SampleRate;
+
+    // each sample is 16 bit and two channels, so 32 bits = 4 bytes
+    return header + 4 * samples;
+}
+
+void WavHeader(double length, int SampleRate) {
+    char BytePerBloc = 4;
+    // Master chunk:
+    printf("RIFF");
+    putint(filesize(length, SampleRate) - 8, 4);
+    printf("WAVE");
+    // Format chunk:
+    printf("fmt ");
+    putint(16, 4); // chunk size
+    putint(1, 2); // 1: PCM format, 3: IIEE float
+    putint(2, 2); // 2 channels
+    putint(SampleRate, 4); // sample rate in Hz
+    putint(SampleRate * BytePerBloc, 4); // BytePerSec
+    putint(BytePerBloc, 2); // BytePerBloc
+    putint(16, 2); // BitsPerSample
+    // Data chunk:
+    printf("data");
+    putint((int)(SampleRate * length) * BytePerBloc, 4);
+}
+
+// TODO a WAV struct that we populate in memory on the heap and can then write
+// out with a helper function?
+
+int main() {
     // Sampling rate:
-    unsigned int SampleRate = 16000; // this needs to be included in the
+    unsigned int SampleRate = DefaultSampleRate; // this needs to be included in the
     // header
 
-    // bits to output
+    int maxlevel = 2<<12;
+    double length = 10; // length of sample in s
+    double dt = 1. / SampleRate;
+
     int16_t v;  // v is a 16-bit integer
-    char* p = (char*) (&v); // this is a character that points to the value of
-                            // v
-    double start = 0; // sample offset
-    double length = 2; // length of sample
-    double tmax = start+length;
-    double t = start; // time variable
 
-    // On-the-fly bitrate conversion:
-    // Downsampling should use a low-pass filter
-    double CutOffFrequency = 0.5 * SampleRate; // Nyquist frequency
-    double alpha = 1-CutOffFrequency/DefaultSampleRate; //remanence for low-pass filter
+    // TODO the header: WAV magic numbers?
+    WavHeader(length, SampleRate);
 
-    while (t<tmax) {
-        v = (int16_t) ( signal(t) * (2<<12) );
-        // 2^12 = 4096, the range of int16_t
-
-        if ((SampleRate < DefaultSampleRate)&&(t>0)) {
-            // downsample the signal
-            // we know that this signal is signal(t), and the last time was
-            // t-dt: so we can say that
-            double dt = 1./SampleRate;
-            int16_t lastValue = (int16_t) ( (alpha*signal(t))*(2<<12) +
-            ((1-alpha)*signal(t-dt))*(2<<12));
-            v = lastValue;
-        }
+    for (double t = 0; t < length; t += dt) {
+        v = (int16_t) ( signal(t) * maxlevel );
 
         // write sound:
-        putchar(p[0]);  // left channel
-        putchar(p[1]);
-        putchar(p[0]);  // right channel
-        putchar(p[1]);
-
-        t+=1./SampleRate; // default sampling rate: 44.1 kHz
-                          // but we could be sampling at something else
+        putint(v, 2); // left channel
+        putint(v, 2);  // right channel
     }
 
     return 0;
