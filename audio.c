@@ -62,10 +62,13 @@ double legendre(double n, double theta) {
     return gsl_sf_legendre_Pl(n, theta);
 }
 
-// define signal
+// define signals
 double signal(double t) {
-    double theta = A440 * t;
-    return JSnNorm(0.95, theta);
+    return JSnNorm(0.95, t);
+}
+
+double signal2(double t) {
+    return besselj(0, t);
 }
 
 int putint(int var, char bytes) {
@@ -111,7 +114,7 @@ void WavHeader(double length, int SampleRate) {
 // TODO a WAV struct that we populate in memory on the heap and can then write
 // out with a helper function?
 
-int main() {
+void beep(double (*waveform)(double), double freq) {
     // Sampling rate:
     unsigned int SampleRate = DefaultSampleRate; // this needs to be included in the
     // header
@@ -126,12 +129,17 @@ int main() {
     WavHeader(length, SampleRate);
 
     for (double t = 0; t < length; t += dt) {
-        v = (int16_t) ( signal(t) * maxlevel );
+        v = (int16_t) ( waveform(freq * t) * maxlevel );
 
         // write sound:
         putint(v, 2); // left channel
         putint(v, 2);  // right channel
     }
+}
+
+int main() {
+    double freq = A440;
+    beep(signal, freq);
 
     return 0;
 }
