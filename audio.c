@@ -146,7 +146,7 @@ int main() {
 */
 
 
-/* Python Bindings */
+/* Python Binding for signal */
 static PyObject* py_signal(PyObject* self, PyObject* args) {
     double t;
     if (!PyArg_ParseTuple(args, "d", &t)) {
@@ -156,10 +156,21 @@ static PyObject* py_signal(PyObject* self, PyObject* args) {
     return Py_BuildValue("d", result);
 }
 
+/* Python Binding for signal 2 */
+static PyObject* py_signal2(PyObject* self, PyObject* args) {
+    double t;
+    if (!PyArg_ParseTuple(args, "d", &t)) {
+        return NULL;
+    }
+    double result = signal2(t);
+    return Py_BuildValue("d", result);
+}
+
 
 /* Module method table */
 static PyMethodDef AudioMethods[] = {
     {"signal", py_signal, METH_VARARGS, "Calculate signal value."},
+    {"signal2", py_signal2, METH_VARARGS, "Calculate signal 2 value."},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
