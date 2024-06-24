@@ -1,11 +1,13 @@
 from distutils.core import setup, Extension
+gsl_path = '/opt/homebrew/opt/gsl'
+
 
 def main():
     audio_module = Extension("audio", 
         sources=["audio.c"],
         libraries = ['m', 'gsl'],
-        include_dirs=['/usr/include/gsl'],
-        library_dirs = ['/usr/lib/x86_64-linux-gnu'],
+        include_dirs=[f'{gsl_path}/include'],
+        library_dirs = [f'{gsl_path}/lib/'],
         extra_objects=[],
         extra_link_args=[]
         )

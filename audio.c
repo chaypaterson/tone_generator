@@ -63,19 +63,19 @@ double legendre(double n, double theta) {
 }
 
 // define signals
-double signal(double t) {
+double gensignal(double t) {
     return JSnNorm(0.95, t);
 }
 
-double signal2(double t) {
+double gensignal2(double t) {
     return besselj(0, t);
 }
 
-int putint(int var, char bytes) {
+int putint(FILE *file, int var, char bytes) {
     // writes "bytes" bytes from the start of an integer
     char* p = (char*) &var;
     for (char n = 0; n < bytes; ++n)
-        putchar(*p++);
+        fputc(*p++, file);
 
     return var;
 }
@@ -89,26 +89,26 @@ int filesize(double length, int SampleRate) {
     return header + 4 * samples;
 }
 
-void WavHeader(double length, int SampleRate) {
+void WavHeader( FILE *file, double length, int SampleRate) {
     char BytePerBloc = 4;
     // Master chunk:
-    printf("RIFF");
-    putint(filesize(length, SampleRate) - 8, 4);
-    printf("WAVE");
+    fprintf(file, "RIFF");
+    putint(file, filesize(length, SampleRate) - 8, 4);
+    fprintf(file, "WAVE");
 
     // Format chunk:
-    printf("fmt ");
-    putint(16, 4); // chunk size
-    putint(1, 2); // 1: PCM format, 3: IIEE float
-    putint(2, 2); // 2 channels
-    putint(SampleRate, 4); // sample rate in Hz
-    putint(SampleRate * BytePerBloc, 4); // BytePerSec
-    putint(BytePerBloc, 2); // BytePerBloc
-    putint(16, 2); // BitsPerSample
+    fprintf(file, "fmt ");
+    putint(file, 16, 4); // chunk size
+    putint(file, 1, 2); // 1: PCM format, 3: IIEE float
+    putint(file, 2, 2); // 2 channels
+    putint(file, SampleRate, 4); // sample rate in Hz
+    putint(file, SampleRate * BytePerBloc, 4); // BytePerSec
+    putint(file, BytePerBloc, 2); // BytePerBloc
+    putint(file, 16, 2); // BitsPerSample
 
     // Data chunk:
-    printf("data");
-    putint((int)(SampleRate * length) * BytePerBloc, 4);
+    fprintf(file, "data");
+    putint(file, (int)(SampleRate * length) * BytePerBloc, 4);
 }
 
 // TODO a WAV struct that we populate in memory on the heap and can then write
@@ -124,17 +124,25 @@ void beep(double (*waveform)(double), double freq) {
     double dt = 1. / SampleRate;
 
     int16_t v;  // v is a 16-bit integer
+    
+     FILE *file = fopen("output.wav", "wb");
+    if (!file) {
+        printf("Error opening output file.\n");
+        return;
+    }
 
     // write the header: WAV magic numbers
-    WavHeader(length, SampleRate);
+    WavHeader(file, length, SampleRate);
 
     for (double t = 0; t < length; t += dt) {
         v = (int16_t) ( waveform(freq * t) * maxlevel );
 
         // write sound:
-        putint(v, 2); // left channel
-        putint(v, 2);  // right channel
+        putint(file, v,  2); // left channel
+        putint(file, v,  2);  // right channel
     }
+
+    fclose(file);
 }
 /*
 int main() {
@@ -147,30 +155,44 @@ int main() {
 
 
 /* Python Binding for signal */
-static PyObject* py_signal(PyObject* self, PyObject* args) {
+static PyObject* py_gensignal(PyObject* self, PyObject* args) {
     double t;
     if (!PyArg_ParseTuple(args, "d", &t)) {
         return NULL;
     }
-    double result = signal(t);
+    double result = gensignal(t);
     return Py_BuildValue("d", result);
 }
 
 /* Python Binding for signal 2 */
-static PyObject* py_signal2(PyObject* self, PyObject* args) {
+static PyObject* py_gensignal2(PyObject* self, PyObject* args) {
     double t;
     if (!PyArg_ParseTuple(args, "d", &t)) {
         return NULL;
     }
-    double result = signal2(t);
+    double result = gensignal2(t);
     return Py_BuildValue("d", result);
+}
+/* Python Binding for beep */
+
+static PyObject* py_beep(PyObject* self, PyObject* args) {
+    double freq = 440.0; // Default frequency
+    if (!PyArg_ParseTuple(args, "|d", &freq)) {
+        return NULL;
+    }
+
+    // Generate beep
+    beep(gensignal, freq);
+
+    Py_RETURN_NONE;
 }
 
 
 /* Module method table */
 static PyMethodDef AudioMethods[] = {
-    {"signal", py_signal, METH_VARARGS, "Calculate signal value."},
-    {"signal2", py_signal2, METH_VARARGS, "Calculate signal 2 value."},
+    {"signal", py_gensignal, METH_VARARGS, "Calculate signal value."},
+    {"signal2", py_gensignal2, METH_VARARGS, "Calculate signal 2 value."},
+    {"beep", py_beep, METH_VARARGS, "Generate a beep (sine wave) and save it to a WAV file."},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -182,6 +204,7 @@ static struct PyModuleDef audiomodule = {
                  or -1 if the module keeps state in global variables. */
     AudioMethods
 };
+
 
 
 /* Module initialization function */
