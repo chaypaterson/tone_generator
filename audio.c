@@ -89,7 +89,7 @@ int filesize(double length, int SampleRate) {
     return header + 4 * samples;
 }
 
-void WavHeader( FILE *file, double length, int SampleRate) {
+void WavHeader(FILE *file, double length, int SampleRate) {
     char BytePerBloc = 4;
     // Master chunk:
     fprintf(file, "RIFF");
@@ -125,7 +125,7 @@ void beep(double (*waveform)(double), double freq) {
 
     int16_t v;  // v is a 16-bit integer
     
-     FILE *file = fopen("output.wav", "wb");
+    FILE *file = fopen("output.wav", "wb");
     if (!file) {
         printf("Error opening output file.\n");
         return;
@@ -144,15 +144,6 @@ void beep(double (*waveform)(double), double freq) {
 
     fclose(file);
 }
-/*
-int main() {
-    double freq = A440;
-    beep(signal, freq);
-
-    return 0;
-}
-*/
-
 
 /* Python Binding for signal */
 static PyObject* py_gensignal(PyObject* self, PyObject* args) {
@@ -187,7 +178,6 @@ static PyObject* py_beep(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-
 /* Module method table */
 static PyMethodDef AudioMethods[] = {
     {"signal", py_gensignal, METH_VARARGS, "Calculate signal value."},
@@ -204,8 +194,6 @@ static struct PyModuleDef audiomodule = {
                  or -1 if the module keeps state in global variables. */
     AudioMethods
 };
-
-
 
 /* Module initialization function */
 PyMODINIT_FUNC PyInit_audio(void) {
@@ -242,8 +230,6 @@ main(int argc, char *argv[])
         PyErr_Print();
         fprintf(stderr, "Error: could not import module 'audio'\n");
     }
-
-   // ...
 
     PyMem_RawFree(program);
     return 0;
