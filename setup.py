@@ -1,13 +1,27 @@
+import sys
 from distutils.core import setup, Extension
-gsl_path = '/opt/homebrew/opt/gsl'
 
+def get_gsl_paths():
+    if sys.platform == 'darwin':
+        # macOS
+        gsl_include_dir = '/opt/homebrew/opt/gsl/include'
+        gsl_lib_dir = '/opt/homebrew/opt/gsl/lib'
+    elif sys.platform.startswith('linux'):
+        # Linux
+        gsl_include_dir = '/usr/include'
+        gsl_lib_dir = '/usr/lib/x86_64-linux-gnu'
+    else:
+        raise RuntimeError(f"Unsupported platform: {sys.platform}")
+    return gsl_include_dir, gsl_lib_dir
 
 def main():
+    gsl_include_dir, gsl_lib_dir = get_gsl_paths()
+
     audio_module = Extension("audio", 
         sources=["audio.c"],
         libraries = ['m', 'gsl'],
-        include_dirs=[f'{gsl_path}/include'],
-        library_dirs = [f'{gsl_path}/lib/'],
+        include_dirs=[gsl_include_dir],
+        library_dirs = [gsl_lib_dir],
         extra_objects=[],
         extra_link_args=[]
         )
