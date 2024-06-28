@@ -32,6 +32,17 @@ double sinc(double theta) {
     return A;
 }
 
+//define the wav structure 
+struct WavFile {
+    unsigned int SampleRate;
+    int BytePerBloc;
+    int maxlevel;
+    double length;
+    int dataSize;
+    int16_t *data;
+    FILE *file;
+};
+
 double sinlet(double theta, double decay) {
     return sin(theta) / cosh(decay * theta);
 }
