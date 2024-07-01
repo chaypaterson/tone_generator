@@ -40,7 +40,6 @@ struct WavFile {
     double length;
     int dataSize;
     int16_t *data;
-    FILE *file;
 };
 
 double sinlet(double theta, double decay) {
@@ -100,11 +99,12 @@ int filesize(double length, int SampleRate) {
     return header + 4 * samples;
 }
 
-void WavHeader(FILE *file, double length, int SampleRate) {
+void WavHeader(struct WavFile *wav, FILE *file) {
+
     char BytePerBloc = 4;
     // Master chunk:
     fprintf(file, "RIFF");
-    putint(file, filesize(length, SampleRate) - 8, 4);
+    putint(file, filesize(wav->length, wav->SampleRate) - 8, 4);
     fprintf(file, "WAVE");
 
     // Format chunk:
@@ -112,28 +112,31 @@ void WavHeader(FILE *file, double length, int SampleRate) {
     putint(file, 16, 4); // chunk size
     putint(file, 1, 2); // 1: PCM format, 3: IIEE float
     putint(file, 2, 2); // 2 channels
-    putint(file, SampleRate, 4); // sample rate in Hz
-    putint(file, SampleRate * BytePerBloc, 4); // BytePerSec
-    putint(file, BytePerBloc, 2); // BytePerBloc
+    putint(file, wav->SampleRate, 4); // sample rate in Hz
+    putint(file, wav->SampleRate * wav->BytePerBloc, 4); // BytePerSec
+    putint(file, wav->BytePerBloc, 2); // BytePerBloc
     putint(file, 16, 2); // BitsPerSample
 
     // Data chunk:
     fprintf(file, "data");
-    putint(file, (int)(SampleRate * length) * BytePerBloc, 4);
+    putint(file, wav->dataSize, 4);
 }
 
 // TODO a WAV struct that we populate in memory on the heap and can then write
 // out with a helper function?
 
 void beep(double (*waveform)(double), double freq) {
-    // Sampling rate:
-    unsigned int SampleRate = DefaultSampleRate; // this needs to be included in the
-    // header
+    struct WavFile wav;
+    wav.SampleRate = DefaultSampleRate;
+    wav.BytePerBloc = 4; // Assuming 2 bytes per channel for stereo
+    wav.maxlevel = 2 << 12;
+    wav.length = 10; // Length of sample in seconds
 
-    int maxlevel = 2<<12;
-    double length = 10; // length of sample in s
-    double dt = 1. / SampleRate;
+    int numSamples = (int)(wav.length * wav.SampleRate);
+    wav.dataSize = numSamples * wav.BytePerBloc;
+    wav.data = (int16_t *)malloc(wav.dataSize);
 
+    double dt = 1. / wav.SampleRate;
     int16_t v;  // v is a 16-bit integer
     
     FILE *file = fopen("output.wav", "wb");
@@ -143,20 +146,23 @@ void beep(double (*waveform)(double), double freq) {
     }
 
     // write the header: WAV magic numbers
-    WavHeader(file, length, SampleRate);
+    WavHeader(&wav, file);
 
-    for (double t = 0; t < length; t += dt) {
-        v = (int16_t) ( waveform(freq * t) * maxlevel );
+    for (double t = 0; t < wav.length; t += dt) {
+        v = (int16_t) ( waveform(freq * t) * wav.maxlevel );
 
         // write sound:
         putint(file, v,  2); // left channel
         putint(file, v,  2);  // right channel
     }
+    // Write data array to file
+    fwrite(wav.data, 1, wav.dataSize, file);
 
     fclose(file);
+    free(wav.data);
 }
 
-/* Python Binding for signal */
+//Python Binding for signal
 static PyObject* py_gensignal(PyObject* self, PyObject* args) {
     double t;
     if (!PyArg_ParseTuple(args, "d", &t)) {
@@ -166,7 +172,7 @@ static PyObject* py_gensignal(PyObject* self, PyObject* args) {
     return Py_BuildValue("d", result);
 }
 
-/* Python Binding for signal 2 */
+//Python Binding for signal 2
 static PyObject* py_gensignal2(PyObject* self, PyObject* args) {
     double t;
     if (!PyArg_ParseTuple(args, "d", &t)) {
@@ -175,7 +181,7 @@ static PyObject* py_gensignal2(PyObject* self, PyObject* args) {
     double result = gensignal2(t);
     return Py_BuildValue("d", result);
 }
-/* Python Binding for beep */
+//Python Binding for beep
 
 static PyObject* py_beep(PyObject* self, PyObject* args) {
     double freq = 440.0; // Default frequency
