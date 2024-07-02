@@ -101,7 +101,6 @@ int filesize(double length, int SampleRate) {
 
 void WavHeader(struct WavFile *wav, FILE *file) {
 
-    char BytePerBloc = 4;
     // Master chunk:
     fprintf(file, "RIFF");
     putint(file, filesize(wav->length, wav->SampleRate) - 8, 4);

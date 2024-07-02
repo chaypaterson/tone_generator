@@ -1,5 +1,6 @@
 import sys
-from distutils.core import setup, Extension
+#from distutils.core import setup, Extension
+from setuptools import setup, Extension
 
 def get_gsl_paths():
     if sys.platform == 'darwin':
